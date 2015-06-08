@@ -43,7 +43,6 @@ for ( var i = routes.length; i--; ) {
     router.get( routes[ i ], [onRouterGETHandler] );
 }
 
-// Bind to before and after route events
-router.on( "beforeget", [onBeforeRouter] );
-router.on( "afterget", [onAfterRouter] );
+// Bind to preget events
+router.on( "preget", [onPreGetRequest] );
 ```

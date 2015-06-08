@@ -141,31 +141,11 @@ Router.prototype = {
         this._pusher.on( "popstate", function ( url, data, status ) {
             // Hook around browsers firing popstate on pageload
             if ( isReady ) {
-                self._fire( "beforeget" );
                 self._fire( "get", url, data, status );
-                self._fire( "afterget" );
                 
             } else {
                 isReady = true;
             }
-        });
-        
-        /**
-         *
-         * @event beforestate
-         *
-         */
-        this._pusher.on( "beforestate", function () {
-            self._fire( "beforeget" );
-        });
-        
-        /**
-         *
-         * @event afterstate
-         *
-         */
-        this._pusher.on( "afterstate", function () {
-            self._fire( "afterget" );
         });
         
         // Manually fire first GET
@@ -338,6 +318,14 @@ Router.prototype = {
             if ( _rSameDomain.test( elem.href ) && elem.href.indexOf( "#" ) === -1 && this._matcher.test( elem.href ) ) {
                 this._preventDefault( e );
                 
+                for ( i = this._callbacks.get.length; i--; ) {
+                    var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
+                    
+                    if ( data.matched ) {
+                        this._fire( "preget", elem.href, data );
+                    }
+                }
+                
                 this._pusher.push( elem.href, function ( response, status ) {
                     self._fire( "get", elem.href, response, status );
                 });
@@ -435,7 +423,7 @@ Router.prototype = {
         // Fires basic timing events "beforeget" / "afterget"    
         } else if ( this._callbacks[ event ] ) {
             for ( i = this._callbacks[ event ].length; i--; ) {
-                this._callbacks[ event ][ i ].call( this );
+                this._callbacks[ event ][ i ].call( this, response );
             }
         }
     }
