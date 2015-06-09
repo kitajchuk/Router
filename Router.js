@@ -318,7 +318,7 @@ Router.prototype = {
             if ( _rSameDomain.test( elem.href ) && elem.href.indexOf( "#" ) === -1 && this._matcher.test( elem.href ) ) {
                 this._preventDefault( e );
                 
-                for ( i = this._callbacks.get.length; i--; ) {
+                for ( var i = this._callbacks.get.length; i--; ) {
                     var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
                     
                     if ( data.matched ) {
