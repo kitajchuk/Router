@@ -145,10 +145,16 @@ Router.prototype = {
                     var dat = self._matcher.parse( url, self._callbacks.get[ i ]._routerRoutes );
                     
                     if ( dat.matched ) {
-                        data = dat;
                         break;
                     }
                 }
+                
+                data = {
+                    route: self._matcher._cleanRoute( url ),
+                    response: data,
+                    request: dat,
+                    status: status || data.status
+                };
                 
                 self._fire( "popget", url, data, status );
                 
