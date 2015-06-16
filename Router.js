@@ -141,7 +141,16 @@ Router.prototype = {
         this._pusher.on( "popstate", function ( url, data, status ) {
             // Hook around browsers firing popstate on pageload
             if ( isReady ) {
-                self._fire( "get", url, data, status );
+                for ( var i = self._callbacks.get.length; i--; ) {
+                    var dat = self._matcher.parse( url, self._callbacks.get[ i ]._routerRoutes );
+                    
+                    if ( dat.matched ) {
+                        data = dat;
+                        break;
+                    }
+                }
+                
+                self._fire( "popget", url, data, status );
                 
             } else {
                 isReady = true;
@@ -323,6 +332,7 @@ Router.prototype = {
                     
                     if ( data.matched ) {
                         this._fire( "preget", elem.href, data );
+                        break;
                     }
                 }
                 
