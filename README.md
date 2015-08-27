@@ -6,22 +6,20 @@ Router
 
 
 ## Installation
-Router will build with its dependencies to `dist` when installed with `npm`.
-
 ```shell
-# Dist located at node_modules/properjs-router/dist/
-npm install properjs-router
+npm install properjs-router --save-dev
 ```
 
 
 ## Usage
 ```javascript
 // Router takes options for PushState
-var router = new Router({
-    async: true,
-    caching: true,
-    preventDefault: true
-});
+var Router = require( "properjs-router" ),
+    router = new Router({
+        async: true,
+        caching: true,
+        preventDefault: true
+    });
 
 // Bind router to page
 router.bind();
