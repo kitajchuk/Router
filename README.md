@@ -44,3 +44,7 @@ for ( var i = routes.length; i--; ) {
 // Bind to preget events
 router.on( "preget", [onPreGetRequest] );
 ```
+
+
+### Ignore Links
+You can optionally add a `js-router--ignore` className to any link and Router will not pick it up.

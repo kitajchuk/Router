@@ -338,7 +338,7 @@
                 elem = (matchElement( el, "a" ) || matchElement( e.target, "a" ));
             
             if ( elem ) {
-                if ( _rSameDomain.test( elem.href ) && elem.href.indexOf( "#" ) === -1 && this._matcher.test( elem.href ) ) {
+                if ( _rSameDomain.test( elem.href ) && elem.href.indexOf( "#" ) === -1 && this._matcher.test( elem.href ) && elem.className.indexOf( "js-router--ignore" ) === -1 ) {
                     this._preventDefault( e );
                     
                     for ( var i = this._callbacks.get.length; i--; ) {
