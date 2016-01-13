@@ -46,5 +46,9 @@ router.on( "preget", [onPreGetRequest] );
 ```
 
 
+### Event metaKey
+Router will honor the metaKey property on matched nodes allowing `Command+click`.
+
+
 ### Ignore Links
 You can optionally add a `js-router--ignore` className to any link and Router will not pick it up.
