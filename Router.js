@@ -336,34 +336,32 @@
         _handler: function ( el, e ) {
             var self = this,
                 elem = (matchElement( el, "a" ) || matchElement( e.target, "a" )),
-                isDomain = _rSameDomain.test( elem.href ),
-                isHashed = elem.href.indexOf( "#" ) !== -1,
-                isMatched = this._matcher.test( elem.href ),
-                isIgnore = elem.className.indexOf( "js-router--ignore" ) !== -1,
-                isMetaKey = e.metaKey;
+                isDomain = elem && _rSameDomain.test( elem.href ),
+                isHashed = elem && elem.href.indexOf( "#" ) !== -1,
+                isMatched = elem && this._matcher.test( elem.href ),
+                isIgnore = elem && elem.className.indexOf( "js-router--ignore" ) !== -1,
+                isMetaKey = elem && e.metaKey;
             
-            if ( elem ) {
-                // 0.1 => Ensure url passes MatchRoute config
-                // 0.2 => Ensure url is on the Document's Domain
-                // 0.3 => Ensure url is not a #hash
-                // 0.4 => Ensure the element does not contain a `js-router--ignore` className
-                // 0.5 => Ensure the Event.metaKey is not TRUE - Command+click
-                if ( isMatched && isDomain && !isHashed && !isIgnore && !isMetaKey ) {
-                    this._preventDefault( e );
+            // 0.1 => Ensure url passes MatchRoute config
+            // 0.2 => Ensure url is on the Document's Domain
+            // 0.3 => Ensure url is not a #hash
+            // 0.4 => Ensure the element does not contain a `js-router--ignore` className
+            // 0.5 => Ensure the Event.metaKey is not TRUE - Command+click
+            if ( isMatched && isDomain && !isHashed && !isIgnore && !isMetaKey ) {
+                this._preventDefault( e );
+                
+                for ( var i = this._callbacks.get.length; i--; ) {
+                    var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
                     
-                    for ( var i = this._callbacks.get.length; i--; ) {
-                        var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
-                        
-                        if ( data.matched ) {
-                            this._fire( "preget", elem.href, data );
-                            break;
-                        }
+                    if ( data.matched ) {
+                        this._fire( "preget", elem.href, data );
+                        break;
                     }
-                    
-                    this._pusher.push( elem.href, function ( response, status ) {
-                        self._fire( "get", elem.href, response, status );
-                    });
                 }
+                
+                this._pusher.push( elem.href, function ( response, status ) {
+                    self._fire( "get", elem.href, response, status );
+                });
             }
         },
         
