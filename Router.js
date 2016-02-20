@@ -20,6 +20,7 @@
     var PushState = require( "properjs-pushstate" ),
         MatchRoute = require( "properjs-matchroute" ),
         matchElement = require( "properjs-matchelement" ),
+        _isRouting = false,
         _rSameDomain = new RegExp( document.domain ),
         _initDelay = 200,
         _triggerEl;
@@ -334,8 +335,7 @@
          *
          */
         _handler: function ( el, e ) {
-            var self = this,
-                elem = (matchElement( el, "a" ) || matchElement( e.target, "a" )),
+            var elem = (matchElement( el, "a" ) || matchElement( e.target, "a" )),
                 isDomain = elem && _rSameDomain.test( elem.href ),
                 isHashed = elem && elem.href.indexOf( "#" ) !== -1,
                 isMatched = elem && this._matcher.test( elem.href ),
@@ -350,19 +350,39 @@
             if ( isMatched && isDomain && !isHashed && !isIgnore && !isMetaKey ) {
                 this._preventDefault( e );
                 
-                for ( var i = this._callbacks.get.length; i--; ) {
-                    var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
-                    
-                    if ( data.matched ) {
-                        this._fire( "preget", elem.href, data );
-                        break;
-                    }
+                if ( !_isRouting ) {
+                    this._route( elem );
                 }
-                
-                this._pusher.push( elem.href, function ( response, status ) {
-                    self._fire( "get", elem.href, response, status );
-                });
             }
+        },
+        
+        
+        /**
+         * Execute the route
+         * @memberof Router
+         * @method _handler
+         * @param {object} elem The event context element
+         * @private
+         *
+         */
+        _route: function ( elem ) {
+            var self = this;
+            
+            _isRouting = true;
+            
+            for ( var i = this._callbacks.get.length; i--; ) {
+                var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
+                
+                if ( data.matched ) {
+                    this._fire( "preget", elem.href, data );
+                    break;
+                }
+            }
+            
+            this._pusher.push( elem.href, function ( response, status ) {
+                _isRouting = false;
+                self._fire( "get", elem.href, response, status );
+            });
         },
         
         /**
