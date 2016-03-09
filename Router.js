@@ -340,14 +340,16 @@
                 isHashed = elem && elem.href.indexOf( "#" ) !== -1,
                 isMatched = elem && this._matcher.test( elem.href ),
                 isIgnore = elem && elem.className.indexOf( "js-router--ignore" ) !== -1,
-                isMetaKey = elem && e.metaKey;
+                isMetaKey = elem && e.metaKey,
+                isBlank = elem && elem.target === "_blank";
             
             // 0.1 => Ensure url passes MatchRoute config
             // 0.2 => Ensure url is on the Document's Domain
             // 0.3 => Ensure url is not a #hash
             // 0.4 => Ensure the element does not contain a `js-router--ignore` className
             // 0.5 => Ensure the Event.metaKey is not TRUE - Command+click
-            if ( isMatched && isDomain && !isHashed && !isIgnore && !isMetaKey ) {
+            // 0.6 => Ensure the element target is not for a new tab
+            if ( isMatched && isDomain && !isHashed && !isIgnore && !isMetaKey && !isBlank ) {
                 this._preventDefault( e );
                 
                 if ( !_isRouting ) {
