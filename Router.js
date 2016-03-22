@@ -342,7 +342,7 @@
                 isIgnore = elem && elem.className.indexOf( "js-router--ignore" ) !== -1,
                 isMetaKey = elem && e.metaKey,
                 isBlank = elem && elem.target === "_blank",
-                isFile = isDomain && elem && elem.href.split( "." ).pop() !== "";
+                isFile = isDomain && elem && elem.href.slice( (elem.href.lastIndexOf( "." ) - 1 >>> 0) + 2 ) !== "";
             
             // 0.1 => Ensure url passes MatchRoute config
             // 0.2 => Ensure url is on the Document's Domain
