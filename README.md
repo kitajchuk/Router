@@ -18,7 +18,12 @@ var Router = require( "properjs-router" ),
     router = new Router({
         async: true,
         caching: true,
-        preventDefault: true
+        preventDefault: true,
+
+        // Run Router as a proxy
+        proxy: {
+            domain: "your.proxy.domain"
+        }
     });
 
 // Bind router to page

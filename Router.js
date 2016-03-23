@@ -342,20 +342,24 @@
                 isIgnore = elem && elem.className.indexOf( "js-router--ignore" ) !== -1,
                 isMetaKey = elem && e.metaKey,
                 isBlank = elem && elem.target === "_blank",
-                isFile = isDomain && elem && elem.href.slice( (elem.href.lastIndexOf( "." ) - 1 >>> 0) + 2 ) !== "";
+                isFile = elem && isDomain && elem.href.slice( (elem.href.lastIndexOf( "." ) - 1 >>> 0) + 2 ) !== "",
+                isProxy = elem && this._options.proxy && new RegExp( this._options.proxy.domain ).test( elem.href );
             
             // 0.1 => Ensure url passes MatchRoute config
             // 0.2 => Ensure url is on the Document's Domain
-            // 0.3 => Ensure url is not a #hash
-            // 0.4 => Ensure the element does not contain a `js-router--ignore` className
-            // 0.5 => Ensure the Event.metaKey is not TRUE - Command+click
-            // 0.6 => Ensure the element target is not for a new tab
-            // 0.7 => Ensure url is not a file link on the same document domain
-            if ( isMatched && isDomain && !isHashed && !isIgnore && !isMetaKey && !isBlank && !isFile ) {
-                this._preventDefault( e );
-                
-                if ( !_isRouting ) {
-                    this._route( elem );
+            // 0.X => Allow proxy domain's to go through this checkpoint
+            if ( (isMatched && isDomain) || isProxy ) {
+                // 0.3 => Ensure url is not a #hash
+                // 0.4 => Ensure the element does not contain a `js-router--ignore` className
+                // 0.5 => Ensure the Event.metaKey is not TRUE - Command+click
+                // 0.6 => Ensure the element target is not for a new tab
+                // 0.7 => Ensure url is not a file link on the same document domain
+                if ( !isHashed && !isIgnore && !isMetaKey && !isBlank && !isFile ) {
+                    this._preventDefault( e );
+                    
+                    if ( !_isRouting ) {
+                        this._route( elem );
+                    }
                 }
             }
         },
