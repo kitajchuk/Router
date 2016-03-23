@@ -2,7 +2,7 @@
     "title": "Router",
     "name": "properjs-router",
     "description": "Handles basic, asynchronous GET routing for the client-side.",
-    "version": "0.2.8",
+    "version": "0.3.0",
     "homepage": "https://github.com/ProperJS/Router",
     "readmeFilename": "README.md",
     "contributors": [
@@ -30,7 +30,7 @@
         "test": "webpack test/test.js test/dist/common.js ; cp Router.js test/dist/browser.js"
     },
     "dependencies": {
-        "properjs-pushstate": "~0.2",
+        "properjs-pushstate": "~0.3",
         "properjs-matchroute": "~0.2",
         "properjs-matchelement": "~0.2"
     },

@@ -7,14 +7,14 @@
  *
  */
 (function ( factory ) {
-    
+
     if ( typeof exports === "object" && typeof module !== "undefined" ) {
         module.exports = factory();
 
     } else if ( typeof window !== "undefined" ) {
         window.Router = factory();
     }
-    
+
 })(function () {
 
     var PushState = require( "properjs-pushstate" ),
@@ -24,8 +24,8 @@
         _rSameDomain = new RegExp( document.domain ),
         _initDelay = 200,
         _triggerEl;
-    
-    
+
+
     /**
      *
      * A simple router Class
@@ -39,10 +39,20 @@
     var Router = function () {
         return this.init.apply( this, arguments );
     };
-    
+
     Router.prototype = {
         constructor: Router,
-        
+
+        /**
+         *
+         * Expression match http/https
+         * @memberof Router
+         * @member _rHTTPs
+         * @private
+         *
+         */
+        _rHTTPs: /^http[s]?:\/\/.*?\//,
+
         /**
          *
          * Router init constructor method
@@ -50,12 +60,16 @@
          * @method init
          * @param {object} options Settings for PushState
          * <ul>
-         * <li>options.async</li>
          * <li>options.caching</li>
+         * <li>options.proxy</li>
+         * <li>options.proxy.domain</li>
+         * <li>options.handle404</li>
+         * <li>options.handle500</li>
+         * <li>options.pushStateOptions</li>
          * </ul>
          *
-         * @fires beforeget
-         * @fires afterget
+         * @fires preget
+         * @fires popget
          * @fires get
          *
          */
@@ -69,7 +83,7 @@
              *
              */
             this._matcher = new MatchRoute();
-            
+
             /**
              *
              * Internal PushState instance
@@ -79,7 +93,7 @@
              *
              */
             this._pusher = null;
-            
+
             /**
              *
              * Event handling callbacks
@@ -89,17 +103,17 @@
              *
              */
             this._callbacks = {};
-            
+
             /**
              *
-             * Router Store user options
+             * Stored XHR responses
              * @memberof Router
-             * @member _options
+             * @member _responses
              * @private
              *
              */
-            this._options = options;
-            
+            this._responses = {};
+
             /**
              *
              * Router unique ID
@@ -109,8 +123,32 @@
              *
              */
             this._uid = 0;
+
+            /**
+             *
+             * Router Store user options
+             * @memberof Router
+             * @member _options
+             * @private
+             *
+             */
+            this._options = {
+                proxy: false,
+                caching: true,
+                handle404: true,
+                handle500: true,
+                pushStateOptions: {}
+            };
+
+            // Normalize usage options passed in
+            options = (options || {});
+
+            // Merge usage options with defaults
+            for ( var i in options ) {
+                this._options[ i ] = options[ i ];
+            }
         },
-        
+
         /**
          *
          * Create PushState instance and add event listener
@@ -120,75 +158,81 @@
          */
         bind: function () {
             var self = this,
-                isReady = false;
-            
+                isReady = false,
+                url = window.location.href;
+
             // Bind GET requests to links
             if ( document.addEventListener ) {
                 document.addEventListener( "click", function ( e ) {
                     self._handler( this, e );
                     
                 }, false );
-                
+
             } else if ( document.attachEvent ) {
                 document.attachEvent( "onclick", function ( e ) {
                     self._handler( this, e );
                 });
             }
-            
+
             /**
              *
              * Instantiate PushState
              *
              */
-            this._pusher = new PushState( this._options );
-            
+            this._pusher = new PushState( this._options.pushStateOptions );
+
             /**
              *
              * @event popstate
              *
              */
-            this._pusher.on( "popstate", function ( url, data, status ) {
+            this._pusher.on( "popstate", function ( url, state ) {
                 // Hook around browsers firing popstate on pageload
                 if ( isReady ) {
                     for ( var i = self._callbacks.get.length; i--; ) {
                         var dat = self._matcher.parse( url, self._callbacks.get[ i ]._routerRoutes );
-                        
+
                         if ( dat.matched ) {
                             break;
                         }
                     }
-                    
+
                     data = {
                         route: self._matcher._cleanRoute( url ),
-                        response: data,
+                        response: self._responses[ url ],
                         request: dat,
-                        status: status || data.status
+                        status: self._responses[ url ].status
                     };
-                    
-                    self._fire( "popget", url, data, status );
-                    
+
+                    self._fire( "popget", url, data );
+
                 } else {
                     isReady = true;
                 }
             });
-            
-            // Manually fire first GET
+
+            // Fire first route - shim a little and bypass true XHR here
             // Async this in order to allow .get() to work after instantiation
             setTimeout(function () {
-                self._pusher.push( window.location.href, function ( response, status ) {
-                    self._fire( "get", window.location.href, response, status );
-                    
-                    isReady = true;
-                });
-                
+                // https://developer.mozilla.org/en-US/docs/Web/API/XMLSerializer
+                var doc = new XMLSerializer().serializeToString( document );
+                var xhr = {
+                    status: 200,
+                    responseText: doc
+                };
+
+                self._fire( "get", url, xhr, xhr.status );
+                self._cache( url, xhr );
+
+                isReady = true;
+
             }, _initDelay );
         },
-        
+
         /**
          *
          * Add an event listener
-         * Binding "beforeget" and "afterget" is a wrapper
-         * to hook into the PushState classes "beforestate" and "afterstate".
+         * Binding "beforeget" and "afterget" wraps the XHR request
          * @memberof Router
          * @method on
          * @param {string} event The event to bind to
@@ -198,7 +242,7 @@
         on: function ( event, callback ) {
             this._bind( event, callback );
         },
-    
+
         /**
          *
          * Remove an event listener
@@ -211,7 +255,7 @@
         off: function ( event, callback ) {
             this._unbind( event, callback );
         },
-    
+
         /**
          *
          * Support router triggers by url
@@ -224,14 +268,14 @@
             if ( !_triggerEl ) {
                 _triggerEl = document.createElement( "a" );
             }
-    
+
             _triggerEl.href = url;
-    
+
             this._handler( _triggerEl, {
                 target: _triggerEl
             });
         },
-        
+
         /**
          *
          * Bind a GET request route
@@ -244,15 +288,15 @@
         get: function ( route, callback ) {
             // Add route to matcher
             this._matcher.config( [route] );
-            
+
             // Bind the route to the callback
             if ( callback._routerRoutes ) {
                 callback._routerRoutes.push( route );
-                
+
             } else {
                 callback._routerRoutes = [route];
             }
-            
+
             // When binding multiple routes to a single
             // callback, we need to make sure the callbacks
             // routes array is updated above but the callback
@@ -261,7 +305,7 @@
                 this._bind( "get", callback );
             }
         },
-    
+
         /**
          *
          * Get a sanitized route for a url
@@ -274,7 +318,7 @@
         getRouteForUrl: function ( url ) {
             return this._matcher._cleanRoute( url );
         },
-    
+
         /**
          *
          * Get the match data for a url against the routes config
@@ -287,7 +331,7 @@
         getRouteDataForUrl: function ( url ) {
             return this._matcher.parse( url, this._matcher.getRoutes() ).params;
         },
-        
+
         /**
          *
          * Get a unique ID
@@ -298,10 +342,10 @@
          */
         getUID: function () {
             this._uid = (this._uid + 1);
-            
+
             return this._uid;
         },
-        
+
         /**
          * Compatible event preventDefault
          * @memberof Router
@@ -311,18 +355,14 @@
          *
          */
         _preventDefault: function ( e ) {
-            if ( !this._options.preventDefault ) {
-                return this;
-            }
-            
             if ( e.preventDefault ) {
                 e.preventDefault();
-                
+
             } else {
                 e.returnValue = false;
             }
         },
-        
+
         /**
          * GET click event handler
          * @memberof Router
@@ -358,41 +398,147 @@
                     this._preventDefault( e );
                     
                     if ( !_isRouting ) {
-                        this._route( elem );
+                        this._route( elem.href );
                     }
                 }
             }
         },
-        
-        
+
+
         /**
          * Execute the route
          * @memberof Router
          * @method _handler
-         * @param {object} elem The event context element
+         * @param {string} url The url in question
+         * @param {function} callback Optional, fired with done
          * @private
          *
          */
-        _route: function ( elem ) {
-            var self = this;
-            
+        _route: function ( url, callback ) {
+            var self = this,
+                urls = {
+                    // For XHR
+                    request: url,
+
+                    // For pushState and Cache
+                    original: url
+                };
+
             _isRouting = true;
-            
+
+            this._matchUrl( urls.original );
+
+            // Handle proxy first since we modify the request URL
+            // Basically, just piece together a URL that swaps this domain with proxy domain
+            if ( this._options.proxy && this._options.proxy.domain ) {
+                // Use window.location.host so it includes port for localhost
+                urls.request = (this._options.proxy.domain + "/" + urls.request.replace( this._rHTTPs, "" ));
+            }
+
+            this._getUrl( urls, function ( response, status ) {
+                _isRouting = false;
+
+                // Push the URL to window History
+                self._pusher.push( urls.original );
+
+                // Fire event for routing
+                self._fire( "get", urls.original, response, status );
+
+                if ( typeof callback === "function" ) {
+                    callback( response, status );
+                }
+            });
+        },
+
+        /**
+         * Match a URL and fire "preget"
+         * @memberof Router
+         * @method _matchUrl
+         * @param {string} url The url in question
+         * @private
+         *
+         */
+        _matchUrl: function ( url ) {
             for ( var i = this._callbacks.get.length; i--; ) {
-                var data = this._matcher.parse( elem.href, this._callbacks.get[ i ]._routerRoutes );
-                
+                var data = this._matcher.parse( url, this._callbacks.get[ i ]._routerRoutes );
+
                 if ( data.matched ) {
-                    this._fire( "preget", elem.href, data );
+                    this._fire( "preget", url, data );
                     break;
                 }
             }
-            
-            this._pusher.push( elem.href, function ( response, status ) {
-                _isRouting = false;
-                self._fire( "get", elem.href, response, status );
-            });
         },
-        
+
+        /**
+         *
+         * Request a url with an XMLHttpRequest
+         * @memberof Router
+         * @method _getUrl
+         * @param {object} urls The urls to request / push / cache
+         * @param {function} callback The function to call when done
+         * @private
+         *
+         */
+        _getUrl: function ( urls, callback ) {
+            var handler = function ( res, stat ) {
+                    try {
+                        // Cache if option enabled
+                        self._cache( urls.original, res );
+
+                        if ( typeof callback === "function" ) {
+                            callback( res, stat );
+                        }
+
+                    } catch ( error ) {}
+                },
+                xhr = null,
+                self = this;
+
+            // Cached response ?
+            if ( this._responses[ urls.original ] ) {
+                handler( this._responses[ urls.original ], this._responses[ urls.original ].status );
+
+            // Fresh request ?
+            } else {
+                xhr = new XMLHttpRequest();
+
+                xhr.open( "GET", urls.request, true );
+
+                xhr.onreadystatechange = function ( e ) {
+                    if ( this.readyState === 4 ) {
+                        if ( this.status === 200 ) {
+                            handler( this, 200 );
+
+                        } else if ( this.status === 404 && self._options.handle404 ) {
+                            handler( this, 404 );
+
+                        } else if ( this.status === 500 && self._options.handle500 ) {
+                            handler( this, 500 );
+                        }
+                    }
+                };
+
+                xhr.send();
+            }
+        },
+
+        /**
+         *
+         * Cache an XHR response object
+         * @memberof Router
+         * @method _cache
+         * @param {string} url The url to cache for
+         * @param {object} res The XHR object
+         * @private
+         *
+         */
+        _cache: function ( url, res ) {
+            // Caching is enabled, Not currently cached yet
+            if ( this._options.caching && !this._responses[ url ] ) {
+                this._responses[ url ] = res;
+            }
+        },
+
         /**
          *
          * Bind an event to a callback
@@ -408,13 +554,13 @@
                 if ( !this._callbacks[ event ] ) {
                     this._callbacks[ event ] = [];
                 }
-                
+
                 callback._jsRouterID = this.getUID();
-                
+
                 this._callbacks[ event ].push( callback );
             }
         },
-    
+
         /**
          *
          * Unbind an event to a callback(s)
@@ -429,27 +575,27 @@
             if ( !this._callbacks[ event ] ) {
                 return this;
             }
-    
+
             // Remove a single callback
             if ( callback ) {
                 for ( var i = 0, len = this._callbacks[ event ].length; i < len; i++ ) {
                     if ( callback._jsRouterID === this._callbacks[ event ][ i ]._jsRouterID ) {
                         this._callbacks[ event ].splice( i, 1 );
-        
+
                         break;
                     }
                 }
-    
+
             // Remove all callbacks for event
             } else {
                 for ( var j = this._callbacks[ event ].length; j--; ) {
                     this._callbacks[ event ][ j ] = null;
                 }
-        
+
                 delete this._callbacks[ event ];
             }
         },
-        
+
         /**
          *
          * Fire an event to a callback
@@ -464,12 +610,12 @@
          */
         _fire: function ( event, url, response, status ) {
             var i;
-            
+
             // GET events have routes and are special ;-P
             if ( event === "get" ) {
                 for ( i = this._callbacks[ event ].length; i--; ) {
                     var data = this._matcher.parse( url, this._callbacks[ event ][ i ]._routerRoutes );
-                    
+
                     if ( data.matched ) {
                         this._callbacks[ event ][ i ].call( this, {
                             route: this._matcher._cleanRoute( url ),
@@ -479,8 +625,8 @@
                         });
                     }
                 }
-            
-            // Fires basic timing events "beforeget" / "afterget"    
+
+            // Fires basic timing events "preget", "popget"
             } else if ( this._callbacks[ event ] ) {
                 for ( i = this._callbacks[ event ].length; i--; ) {
                     this._callbacks[ event ][ i ].call( this, response );
@@ -488,8 +634,8 @@
             }
         }
     };
-    
-    
+
+
     return Router;
 
 });

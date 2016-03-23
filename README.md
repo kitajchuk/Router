@@ -16,14 +16,23 @@ npm install properjs-router --save-dev
 // Router takes options for PushState
 var Router = require( "properjs-router" ),
     router = new Router({
-        async: true,
+        // Defaults:
+
+        // Keeps response caches for requests
         caching: true,
-        preventDefault: true,
+
+        // Handle 404s and 500s
+        handle404: true,
+        handle500: true,
 
         // Run Router as a proxy
         proxy: {
-            domain: "your.proxy.domain"
-        }
+            domain: "http://your.proxy.domain"
+        },
+
+        // Pass options to PushState
+        // @see: https://github.com/ProperJS/PushState
+        pushStateOptions: {}
     });
 
 // Bind router to page
@@ -41,14 +50,24 @@ var routes = [
     "also/:slug/:num!num"
 ];
 
+// If you want to wildcard your whole site, pretty useful
+var routes = ["*"]
+
 // Apply the GET listener to routes
 for ( var i = routes.length; i--; ) {
     router.get( routes[ i ], [onRouterGETHandler] );
 }
 
 // Bind to preget events
-router.on( "preget", [onPreGetRequest] );
+router.on( "preget", [onPreGETRequest] );
+
+// Bind to popget events
+router.on( "popget", [onPopGETRequest] );
 ```
+
+
+### Files
+Router will ignore links deemed to be `files`.
 
 
 ### Event metaKey
