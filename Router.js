@@ -76,6 +76,30 @@
         init: function ( options ) {
             /**
              *
+             * Router Store user options
+             * @memberof Router
+             * @member _options
+             * @private
+             *
+             */
+            this._options = {
+                proxy: false,
+                caching: true,
+                handle404: true,
+                handle500: true,
+                pushStateOptions: {}
+            };
+
+            // Normalize usage options passed in
+            options = (options || {});
+
+            // Merge usage options with defaults
+            for ( var i in options ) {
+                this._options[ i ] = options[ i ];
+            }
+
+            /**
+             *
              * Internal MatchRoute instance
              * @memberof Router
              * @member _matcher
@@ -92,7 +116,7 @@
              * @private
              *
              */
-            this._pusher = null;
+            this._pusher = new PushState( this._options.pushStateOptions );
 
             /**
              *
@@ -126,27 +150,13 @@
 
             /**
              *
-             * Router Store user options
+             * Router is READY status ?
              * @memberof Router
-             * @member _options
+             * @member _ready
              * @private
              *
              */
-            this._options = {
-                proxy: false,
-                caching: true,
-                handle404: true,
-                handle500: true,
-                pushStateOptions: {}
-            };
-
-            // Normalize usage options passed in
-            options = (options || {});
-
-            // Merge usage options with defaults
-            for ( var i in options ) {
-                this._options[ i ] = options[ i ];
-            }
+            this._ready = false;
         },
 
         /**
@@ -158,57 +168,18 @@
          */
         bind: function () {
             var self = this,
-                isReady = false,
-                url = window.location.href;
+                // Ensure this first cache URL is clean as a whistle
+                url = window.location.href.replace( window.location.hash, "" );
 
             // Bind GET requests to links
-            if ( document.addEventListener ) {
-                document.addEventListener( "click", function ( e ) {
-                    self._handler( this, e );
-                    
-                }, false );
+            document.addEventListener( "click", function ( e ) {
+                self._handleClick( this, e );
 
-            } else if ( document.attachEvent ) {
-                document.attachEvent( "onclick", function ( e ) {
-                    self._handler( this, e );
-                });
-            }
+            }, false );
 
-            /**
-             *
-             * Instantiate PushState
-             *
-             */
-            this._pusher = new PushState( this._options.pushStateOptions );
-
-            /**
-             *
-             * @event popstate
-             *
-             */
+            // Bind popstate event for history
             this._pusher.on( "popstate", function ( url, state ) {
-                // Hook around browsers firing popstate on pageload
-                if ( isReady ) {
-                    for ( var i = self._callbacks.get.length; i--; ) {
-                        var dat = self._matcher.parse( url, self._callbacks.get[ i ]._routerRoutes );
-
-                        if ( dat.matched ) {
-                            break;
-                        }
-                    }
-
-                    data = {
-                        route: self._matcher._cleanRoute( url ),
-                        response: self._responses[ url ],
-                        request: dat,
-                        status: self._responses[ url ].status
-                    };
-
-                    self._fire( "popget", url, data );
-
-                } else {
-                    isReady = true;
-                }
+                self._handlePopstate( url, state );
             });
 
             // Fire first route - shim a little and bypass true XHR here
@@ -223,8 +194,7 @@
 
                 self._fire( "get", url, xhr, xhr.status );
                 self._cache( url, xhr );
-
-                isReady = true;
+                self._ready = true;
 
             }, _initDelay );
         },
@@ -271,7 +241,7 @@
 
             _triggerEl.href = url;
 
-            this._handler( _triggerEl, {
+            this._handleClick( _triggerEl, {
                 target: _triggerEl
             });
         },
@@ -366,7 +336,7 @@
         /**
          * GET click event handler
          * @memberof Router
-         * @method _handler
+         * @method _handleClick
          * @param {object} el The event context element
          * @param {object} e The event object
          * @private
@@ -374,7 +344,7 @@
          * @fires get
          *
          */
-        _handler: function ( el, e ) {
+        _handleClick: function ( el, e ) {
             var elem = (matchElement( el, "a" ) || matchElement( e.target, "a" )),
                 isDomain = elem && _rSameDomain.test( elem.href ),
                 isHashed = elem && elem.href.indexOf( "#" ) !== -1,
@@ -404,11 +374,46 @@
             }
         },
 
+        /**
+         * Handle history popstate event from PushState
+         * @memberof Router
+         * @method _handlePopstate
+         * @param {string} url The url popped to
+         * @param {object} state The PushState state object
+         * @private
+         *
+         * @fires get
+         *
+         */
+        _handlePopstate: function ( url, state ) {
+            // Hook around browsers firing popstate on pageload
+            if ( this._ready ) {
+                for ( var i = this._callbacks.get.length; i--; ) {
+                    var dat = this._matcher.parse( url, this._callbacks.get[ i ]._routerRoutes );
+
+                    if ( dat.matched ) {
+                        break;
+                    }
+                }
+
+                data = {
+                    route: this._matcher._cleanRoute( url ),
+                    response: this._responses[ url ],
+                    request: dat,
+                    status: this._responses[ url ].status
+                };
+
+                this._fire( "popget", url, data );
+
+            } else {
+                this._ready = true;
+            }
+        },
 
         /**
          * Execute the route
          * @memberof Router
-         * @method _handler
+         * @method _route
          * @param {string} url The url in question
          * @param {function} callback Optional, fired with done
          * @private
