@@ -20,8 +20,6 @@
     var PushState = require( "properjs-pushstate" ),
         MatchRoute = require( "properjs-matchroute" ),
         matchElement = require( "properjs-matchelement" ),
-        _isRouting = false,
-        _rSameDomain = new RegExp( document.domain ),
         _initDelay = 200,
         _triggerEl;
 
@@ -52,6 +50,36 @@
          *
          */
         _rHTTPs: /^http[s]?:\/\/.*?\//,
+
+        /**
+         *
+         * Expression match common file types...
+         * @memberof Router
+         * @member _rFiles
+         * @private
+         *
+         */
+        _rFiles: /\.jpg|jpeg|png|gif|pdf|csv|txt|md|doc|docx|xls|xlsx|webm|mp4|mp3$/gi,
+
+        /**
+         *
+         * Expression match this documents domain
+         * @memberof Router
+         * @member _rDomain
+         * @private
+         *
+         */
+        _rDomain: new RegExp( document.domain ),
+
+        /**
+         *
+         * Flag routing state
+         * @memberof Router
+         * @member _isRouting
+         * @private
+         *
+         */
+        _isRouting: false,
 
         /**
          *
@@ -346,15 +374,15 @@
          */
         _handleClick: function ( el, e ) {
             var elem = (matchElement( el, "a" ) || matchElement( e.target, "a" )),
-                isDomain = elem && _rSameDomain.test( elem.href ),
-                isHashed = elem && elem.href.indexOf( "#" ) !== -1,
                 isMatched = elem && this._matcher.test( elem.href ),
+                isDomain = elem && this._rDomain.test( elem.href ),
+                isProxy = elem && this._options.proxy && this._options.proxy.domain,
+                isHashed = elem && elem.href.indexOf( "#" ) !== -1,
                 isIgnore = elem && elem.className.indexOf( "js-router--ignore" ) !== -1,
                 isMetaKey = elem && e.metaKey,
                 isBlank = elem && elem.target === "_blank",
-                isFile = elem && isDomain && elem.href.slice( (elem.href.lastIndexOf( "." ) - 1 >>> 0) + 2 ) !== "",
-                isProxy = elem && this._options.proxy && new RegExp( this._options.proxy.domain ).test( elem.href );
-            
+                isFile = elem && isDomain && elem.href.match( this._rFiles );
+
             // 0.1 => Ensure url passes MatchRoute config
             // 0.2 => Ensure url is on the Document's Domain
             // 0.X => Allow proxy domain's to go through this checkpoint
@@ -367,7 +395,7 @@
                 if ( !isHashed && !isIgnore && !isMetaKey && !isBlank && !isFile ) {
                     this._preventDefault( e );
                     
-                    if ( !_isRouting ) {
+                    if ( !this._isRouting ) {
                         this._route( elem.href );
                     }
                 }
@@ -429,7 +457,7 @@
                     original: url
                 };
 
-            _isRouting = true;
+            this._isRouting = true;
 
             this._matchUrl( urls.original );
 
@@ -441,7 +469,7 @@
             }
 
             this._getUrl( urls, function ( response, status ) {
-                _isRouting = false;
+                self._isRouting = false;
 
                 // Push the URL to window History
                 self._pusher.push( urls.original );
