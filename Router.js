@@ -59,7 +59,7 @@
          * @private
          *
          */
-        _rFiles: /\.jpg|jpeg|png|gif|pdf|csv|txt|md|doc|docx|xls|xlsx|webm|mp4|mp3$/gi,
+        _rFiles: /\.(jpg|jpeg|png|gif|pdf|csv|txt|md|doc|docx|xls|xlsx|webm|mp4|mp3)$/gi,
 
         /**
          *
