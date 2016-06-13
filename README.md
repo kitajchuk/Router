@@ -18,6 +18,9 @@ var Router = require( "properjs-router" ),
     router = new Router({
         // Defaults:
 
+        // Use XHR
+        async: true,
+
         // Keeps response caches for requests
         caching: true,
 
@@ -42,10 +45,10 @@ router.bind();
 var routes = [
     // Known route
     "some/route",
-    
+
     // Unknown route
     "another/:slug",
-    
+
     // Unknown route, enforce Number on last uri
     "also/:slug/:num!num"
 ];

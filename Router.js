@@ -111,6 +111,7 @@
              *
              */
             this._options = {
+                async: true,
                 proxy: false,
                 caching: true,
                 handle404: true,
@@ -212,7 +213,7 @@
 
             // Fire first route
             // Async this in order to allow .get() to work after instantiation
-            if ( this._options.handle404 ) {
+            if ( this._options.async && this._options.handle404 ) {
                 this._route( url, function ( response, status ) {
                     self._ready = true;
                 });
@@ -230,7 +231,7 @@
                     self._fire( "get", url, xhr, xhr.status );
                     self._cache( url, xhr );
                     self._ready = true;
-    
+
                 }, _initDelay );
             }
         },
@@ -402,7 +403,7 @@
                 // 0.7 => Ensure url is not a file link on the same document domain
                 if ( !isHashed && !isIgnore && !isMetaKey && !isBlank && !isFile ) {
                     this._preventDefault( e );
-                    
+
                     if ( !this._isRouting ) {
                         this._route( elem.href );
                     }
@@ -544,7 +545,7 @@
                 handler( this._responses[ urls.original ], this._responses[ urls.original ].status );
 
             // Fresh request ?
-            } else {
+            } else if ( this._options.async ) {
                 xhr = new XMLHttpRequest();
 
                 xhr.open( "GET", urls.request, true );
@@ -564,6 +565,9 @@
                 };
 
                 xhr.send();
+
+            } else {
+                handler( { responseText: "" }, 200 );
             }
         },
 

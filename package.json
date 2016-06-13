@@ -2,7 +2,7 @@
     "title": "Router",
     "name": "properjs-router",
     "description": "Handles basic, asynchronous GET routing for the client-side.",
-    "version": "0.3.4",
+    "version": "0.3.5",
     "homepage": "https://github.com/ProperJS/Router",
     "readmeFilename": "README.md",
     "contributors": [
