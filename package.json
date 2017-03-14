@@ -2,14 +2,14 @@
     "title": "Router",
     "name": "properjs-router",
     "description": "Handles basic, asynchronous GET routing for the client-side.",
-    "version": "0.3.5",
+    "version": "0.4.0",
     "homepage": "https://github.com/ProperJS/Router",
     "readmeFilename": "README.md",
     "contributors": [
         {
             "name": "Brandon Kitajchuk",
             "email": "kitajchuk@gmail.com",
-            "url": "http://blkpdx.com"
+            "url": "http://kitajchuk.com"
         }
     ],
     "repository": {
@@ -27,17 +27,23 @@
     ],
     "main": "Router",
     "scripts": {
-        "test": "webpack test/test.js test/dist/common.js ; cp Router.js test/dist/browser.js"
+        "build": "./node_modules/.bin/webpack -d --colors",
+        "watch": "./node_modules/.bin/webpack -d --watch --colors"
     },
     "dependencies": {
         "properjs-pushstate": "~0.3",
         "properjs-matchroute": "~0.2",
-        "properjs-matchelement": "~0.2"
+        "properjs-matchelement": "~0.3"
     },
     "keywords": [
         "properjs",
         "router",
         "history",
         "async"
-    ]
+    ],
+    "devDependencies": {
+      "browser-sync": "^2.18.8",
+      "browser-sync-webpack-plugin": "^1.1.4",
+      "webpack": "^2.2.1"
+    }
 }

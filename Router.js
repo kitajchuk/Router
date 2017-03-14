@@ -382,7 +382,7 @@
          *
          */
         _handleClick: function ( el, e ) {
-            var elem = (matchElement( el, "a" ) || matchElement( e.target, "a" )),
+            var elem = (matchElement( el, "a", true ) || matchElement( e.target, "a", true )),
                 isMatched = elem && this._matcher.test( elem.href ),
                 isDomain = elem && this._rDomain.test( elem.href ),
                 isProxy = elem && this._options.proxy && this._options.proxy.domain,
