@@ -21,7 +21,8 @@
         MatchRoute = require( "properjs-matchroute" ),
         matchElement = require( "properjs-matchelement" ),
         _initDelay = 200,
-        _triggerEl;
+        _triggerEl,
+        _activeEl;
 
 
     /**
@@ -313,6 +314,10 @@
             }
         },
 
+        getActiveEl: function () {
+            return _activeEl;
+        },
+
         /**
          *
          * Get a sanitized route for a url
@@ -402,6 +407,8 @@
                 // 0.6 => Ensure the element target is not for a new tab
                 // 0.7 => Ensure url is not a file link on the same document domain
                 if ( !isHashed && !isIgnore && !isMetaKey && !isBlank && !isFile ) {
+                    _activeEl = elem;
+
                     this._preventDefault( e );
 
                     if ( !this._isRouting ) {
