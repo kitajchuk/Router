@@ -92,7 +92,7 @@ export default class Router extends Controller {
 
         triggerEl.href = url;
 
-        this._handleClick( triggerEl, {
+        this._handleClick({
             target: triggerEl,
         });
     }

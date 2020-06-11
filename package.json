@@ -2,7 +2,7 @@
     "title": "Router",
     "name": "properjs-router",
     "description": "Lightweight JS router with History.",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "homepage": "https://github.com/ProperJS/Router",
     "readmeFilename": "README.md",
     "contributors": [
